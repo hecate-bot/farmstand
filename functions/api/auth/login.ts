@@ -84,16 +84,34 @@ export async function onRequestPost({ request, env }: PagesContext): Promise<Res
     'SELECT admin_password_hash FROM stores WHERE id = ?'
   ).bind('default').first<{ admin_password_hash: string }>();
 
-  const valid = await verifyPassword(password, store?.admin_password_hash || '');
+  // First-run setup mode: if no password has ever been set, the first login
+  // attempt sets the password (minimum 8 characters required).
+  if (!store?.admin_password_hash) {
+    if (password.length < 8) {
+      return new Response(JSON.stringify({ error: 'First-run setup: choose a password of at least 8 characters.' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+    const salt = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+      .map((b) => b.toString(16).padStart(2, '0')).join('');
+    const hashed = `${salt}:${await deriveKey(password, salt)}`;
+    await env.DB.prepare(
+      'UPDATE stores SET admin_password_hash = ? WHERE id = ?'
+    ).bind(hashed, 'default').run();
+    // Fall through to issue a session below
+  } else {
+    const valid = await verifyPassword(password, store.admin_password_hash);
 
-  // Always record the attempt (whether success or failure) to prevent enumeration
-  await recordAttempt(ip, env);
+    // Always record the attempt (whether success or failure) to prevent enumeration
+    await recordAttempt(ip, env);
 
-  if (!valid) {
-    return new Response(JSON.stringify({ error: 'Invalid password' }), {
-      status: 401,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    if (!valid) {
+      return new Response(JSON.stringify({ error: 'Invalid password' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
   }
 
   const token = crypto.randomUUID();
