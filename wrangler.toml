@@ -13,8 +13,9 @@ bucket_name = "farmstand-assets"
 
 [vars]
 ENVIRONMENT = "production"
-R2_PUBLIC_URL = "https://REPLACE_WITH_YOUR_R2_DOMAIN"
-ALLOWED_ORIGIN = "https://REPLACE_WITH_YOUR_PAGES_DOMAIN"
+# R2_PUBLIC_URL and ALLOWED_ORIGIN are set as environment variables
+# in the Cloudflare Pages dashboard (Settings → Environment Variables)
+# so they never need to be committed to the repo.
 
 [dev]
 port = 8788

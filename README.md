@@ -177,15 +177,20 @@ farmstand/
 
 ---
 
-## Environment Variables (wrangler.toml)
+## Environment Variables
 
-| Variable | Description |
-|---|---|
-| `R2_PUBLIC_URL` | Public URL for your R2 bucket (e.g. `https://pub-xxxx.r2.dev`) |
-| `ALLOWED_ORIGIN` | Your Pages URL — restricts CORS to this origin (e.g. `https://farmstand.pages.dev`) |
-| `ENVIRONMENT` | `production` or `development` |
+`R2_PUBLIC_URL` and `ALLOWED_ORIGIN` are set **per-deployment** in the Cloudflare dashboard — never committed to the repo.
 
-D1 and R2 bindings are configured via `wrangler.toml`, not env vars.
+**Cloudflare Dashboard → Pages → your project → Settings → Environment Variables → Add:**
+
+| Variable | Example value | Description |
+|---|---|---|
+| `R2_PUBLIC_URL` | `https://img.farmstand.example.com` | Public URL for your R2 bucket |
+| `ALLOWED_ORIGIN` | `https://farmstand.example.com` | Customer's domain — restricts CORS |
+
+`ENVIRONMENT` is set in `wrangler.toml` and is not sensitive.
+
+The D1 `database_id` must be in `wrangler.toml` (it's a binding, not an env var) — fill it in after running `wrangler d1 create`.
 
 ---
 
