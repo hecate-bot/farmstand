@@ -1,0 +1,20 @@
+name = "farmstand"
+compatibility_date = "2024-11-01"
+pages_build_output_dir = "./dist"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "farmstand"
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"  # wrangler d1 create farmstand
+
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "farmstand-assets"
+
+[vars]
+ENVIRONMENT = "production"
+R2_PUBLIC_URL = "https://pub-REPLACE.r2.dev"  # Your R2 public bucket URL
+
+[dev]
+port = 8788
+local_protocol = "http"
