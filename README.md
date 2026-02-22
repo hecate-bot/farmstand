@@ -23,6 +23,19 @@ Built on Cloudflare Pages + Workers + D1 + R2. Any business with Stripe can use 
 
 ---
 
+## Deploy Your Own (Template Usage)
+
+This repo is a GitHub Template. To spin up a new farm stand for a customer:
+
+1. Go to `github.com/hecate-bot/farmstand` → **Use this template** → Create a new repository. Name it after the customer (e.g. `sunnyside-farmstand`).
+2. Clone the new repo locally and follow the Setup steps below.
+3. All Cloudflare resources (D1, R2, Pages) should be created fresh for each customer — they each get their own isolated deployment.
+4. Once deployed, the customer's store URL goes on their QR code (Admin → QR Code).
+
+Each deployment is fully independent. One customer's data, keys, and settings have no relation to any other.
+
+---
+
 ## Setup
 
 ### Prerequisites
