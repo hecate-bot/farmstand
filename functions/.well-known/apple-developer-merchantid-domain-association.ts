@@ -1,22 +1,20 @@
-import type { Env } from '../../src/types';
+// Stripe publishes the Apple Pay domain association file at a canonical URL.
+// We proxy it here so Apple can verify this domain for Apple Pay.
+export async function onRequestGet(): Promise<Response> {
+  const res = await fetch(
+    'https://stripe.com/files/apple-pay/apple-developer-merchantid-domain-association'
+  );
 
-interface PagesContext {
-  request: Request;
-  env: Env;
-}
-
-export async function onRequestGet({ env }: PagesContext): Promise<Response> {
-  const store = await env.DB.prepare(
-    'SELECT apple_pay_domain_file FROM stores WHERE id = ?'
-  ).bind('default').first<{ apple_pay_domain_file: string }>();
-
-  const content = store?.apple_pay_domain_file || '';
-
-  if (!content) {
-    return new Response('Not configured', { status: 404 });
+  if (!res.ok) {
+    return new Response('Could not fetch Apple Pay domain association file', { status: 502 });
   }
 
+  const content = await res.text();
+
   return new Response(content, {
-    headers: { 'Content-Type': 'text/plain' },
+    headers: {
+      'Content-Type': 'text/plain',
+      'Cache-Control': 'public, max-age=86400',
+    },
   });
 }
