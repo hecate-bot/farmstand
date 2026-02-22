@@ -8,10 +8,39 @@ interface PagesContext {
 }
 
 export async function onRequest(context: PagesContext): Promise<Response> {
+  const { request, env } = context;
+
+  // Prefer explicit ALLOWED_ORIGIN env var; fall back to the request's own origin
+  // so that local wrangler dev always works. In production, ALLOWED_ORIGIN should
+  // be set to your Cloudflare Pages URL (e.g. https://farmstand.pages.dev).
+  const allowedOrigin = env.ALLOWED_ORIGIN || request.headers.get('Origin') || '*';
+  const requestOrigin = request.headers.get('Origin') ?? '';
+
+  // Reject cross-origin requests that don't match when ALLOWED_ORIGIN is set
+  if (env.ALLOWED_ORIGIN && requestOrigin && requestOrigin !== env.ALLOWED_ORIGIN) {
+    return new Response(JSON.stringify({ error: 'Forbidden' }), {
+      status: 403,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
+  // Handle CORS preflight
+  if (request.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: {
+        'Access-Control-Allow-Origin': allowedOrigin,
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Access-Control-Max-Age': '86400',
+      },
+    });
+  }
+
   try {
     const response = await context.next();
     const newResponse = new Response(response.body, response);
-    newResponse.headers.set('Access-Control-Allow-Origin', '*');
+    newResponse.headers.set('Access-Control-Allow-Origin', allowedOrigin);
     newResponse.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     newResponse.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     return newResponse;
@@ -19,7 +48,10 @@ export async function onRequest(context: PagesContext): Promise<Response> {
     const message = err instanceof Error ? err.message : 'Internal server error';
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': allowedOrigin,
+      },
     });
   }
 }

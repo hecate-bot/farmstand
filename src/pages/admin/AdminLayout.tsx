@@ -1,9 +1,11 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { logout } from '../../lib/api';
 
 export default function AdminLayout() {
   const navigate = useNavigate();
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await logout().catch(() => {});
     localStorage.removeItem('admin_token');
     navigate('/admin/login');
   };

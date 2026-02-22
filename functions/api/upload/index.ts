@@ -6,7 +6,13 @@ interface PagesContext {
   env: Env;
 }
 
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'image/svg+xml'];
+const MIME_TO_EXT: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/gif': 'gif',
+};
+
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB
 
 export async function onRequestPost({ request, env }: PagesContext): Promise<Response> {
@@ -28,8 +34,9 @@ export async function onRequestPost({ request, env }: PagesContext): Promise<Res
     });
   }
 
-  if (!ALLOWED_TYPES.includes(file.type)) {
-    return new Response(JSON.stringify({ error: 'File type not allowed. Use JPEG, PNG, WebP, GIF, or SVG.' }), {
+  const ext = MIME_TO_EXT[file.type];
+  if (!ext) {
+    return new Response(JSON.stringify({ error: 'File type not allowed. Use JPEG, PNG, WebP, or GIF.' }), {
       status: 400,
       headers: { 'Content-Type': 'application/json' },
     });
@@ -42,7 +49,6 @@ export async function onRequestPost({ request, env }: PagesContext): Promise<Res
     });
   }
 
-  const ext = file.name.split('.').pop() || 'jpg';
   const key = `uploads/${crypto.randomUUID()}.${ext}`;
 
   await env.BUCKET.put(key, await file.arrayBuffer(), {

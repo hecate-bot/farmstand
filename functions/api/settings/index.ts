@@ -11,28 +11,32 @@ async function hashPassword(password: string): Promise<string> {
     .map((b) => b.toString(16).padStart(2, '0'))
     .join('');
   const encoder = new TextEncoder();
-  const data = encoder.encode(salt + password);
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hash = hashArray.map((b) => b.toString(16).padStart(2, '0')).join('');
+  const keyMaterial = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(password),
+    'PBKDF2',
+    false,
+    ['deriveBits']
+  );
+  const bits = await crypto.subtle.deriveBits(
+    { name: 'PBKDF2', salt: encoder.encode(salt), iterations: 200_000, hash: 'SHA-256' },
+    keyMaterial,
+    256
+  );
+  const hash = Array.from(new Uint8Array(bits)).map((b) => b.toString(16).padStart(2, '0')).join('');
   return `${salt}:${hash}`;
 }
 
 export async function onRequestGet({ request, env }: PagesContext): Promise<Response> {
   const isAdmin = await verifyToken(request, env);
 
+  // Always fetch the full row; strip sensitive fields based on role
   const store = await env.DB.prepare(
-    'SELECT id, name, logo_url, color_primary, color_secondary, color_accent, stripe_publishable_key, venmo_handle FROM stores WHERE id = ?'
-  ).bind('default').first();
+    'SELECT id, name, logo_url, color_primary, color_secondary, color_accent, stripe_publishable_key, venmo_handle, apple_pay_domain_file FROM stores WHERE id = ?'
+  ).bind('default').first<Record<string, unknown>>();
 
-  if (isAdmin) {
-    // Admin also gets apple_pay_domain_file (not secret key though)
-    const adminStore = await env.DB.prepare(
-      'SELECT id, name, logo_url, color_primary, color_secondary, color_accent, stripe_publishable_key, venmo_handle, apple_pay_domain_file FROM stores WHERE id = ?'
-    ).bind('default').first();
-    return new Response(JSON.stringify(adminStore), {
-      headers: { 'Content-Type': 'application/json' },
-    });
+  if (!isAdmin && store) {
+    delete store['apple_pay_domain_file'];
   }
 
   return new Response(JSON.stringify(store), {

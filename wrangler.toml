@@ -14,6 +14,7 @@ bucket_name = "farmstand-assets"
 [vars]
 ENVIRONMENT = "production"
 R2_PUBLIC_URL = "https://pub-REPLACE.r2.dev"  # Your R2 public bucket URL
+ALLOWED_ORIGIN = "https://REPLACE.pages.dev"  # Your Cloudflare Pages URL (set via dashboard secret or replace here)
 
 [dev]
 port = 8788

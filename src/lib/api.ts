@@ -48,6 +48,9 @@ export const login = (password: string): Promise<{ token: string }> =>
 export const verifyToken = (): Promise<{ valid: boolean }> =>
   apiFetch('/api/auth/verify');
 
+export const logout = (): Promise<{ ok: boolean }> =>
+  apiFetch('/api/auth/logout', { method: 'POST' });
+
 // Upload
 export const uploadFile = async (file: File): Promise<{ url: string }> => {
   const formData = new FormData();

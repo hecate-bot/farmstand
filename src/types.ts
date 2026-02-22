@@ -38,4 +38,5 @@ export interface Env {
   BUCKET: R2Bucket;
   R2_PUBLIC_URL: string;
   ENVIRONMENT: string;
+  ALLOWED_ORIGIN: string;
 }

@@ -84,7 +84,7 @@ export async function onRequestPost({ request, env }: PagesContext): Promise<Res
         headers: { 'Content-Type': 'application/json' },
       });
     }
-    if (item.quantity < 1 || item.quantity > 99) {
+    if (!Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 99) {
       return new Response(JSON.stringify({ error: 'Invalid quantity' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
@@ -104,7 +104,7 @@ export async function onRequestPost({ request, env }: PagesContext): Promise<Res
   const intent = await stripeRequest(store.stripe_secret_key, '/payment_intents', {
     amount: String(totalCents),
     currency: 'usd',
-    automatic_payment_methods: 'enabled',
+    'automatic_payment_methods[enabled]': 'true',
     description: `${store.name} farm stand order`,
   }) as { client_secret: string };
 
