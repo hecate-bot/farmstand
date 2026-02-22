@@ -2,16 +2,15 @@
 
 A mobile-first payment app for honor-system farm stands, pop-ups, and table sales. Customers scan a QR code, pick products, and pay with Apple Pay or Venmo.
 
-Built on Cloudflare Pages + Workers + D1 + R2. Any business with Stripe can use it.
+Built on Cloudflare Pages + D1 + R2. Any business with a Stripe account can use it.
 
 ## Features
 
 - 📱 **Mobile-first storefront** — scan QR → pick products → pay in ~10 seconds
-- 🍎 **Apple Pay** via Stripe Payment Request Button
+- 🍎 **Apple Pay** via Stripe (Safari/iPhone)
 - 💸 **Venmo** via deep link (pre-filled amount + handle)
 - 🖼 **Admin panel** — manage products, upload images, set logo + brand colors
 - 🔐 **Secure** — Stripe secret key never exposed to frontend, server-side price validation
-- 🌍 **Multi-tenant** — each deployment is its own store
 
 ## Stack
 
@@ -25,14 +24,12 @@ Built on Cloudflare Pages + Workers + D1 + R2. Any business with Stripe can use 
 
 ## Deploy Your Own (Template Usage)
 
-This repo is a GitHub Template. To spin up a new farm stand for a customer:
+This repo is a GitHub Template. To spin up a new farm stand:
 
-1. Go to `github.com/hecate-bot/farmstand` → **Use this template** → Create a new repository. Name it after the customer (e.g. `sunnyside-farmstand`).
-2. Clone the new repo locally and follow the Setup steps below.
-3. All Cloudflare resources (D1, R2, Pages) should be created fresh for each customer — they each get their own isolated deployment.
-4. Once deployed, the customer's store URL goes on their QR code (Admin → QR Code).
-
-Each deployment is fully independent. One customer's data, keys, and settings have no relation to any other.
+1. Go to `github.com/hecate-bot/farmstand` → **Use this template** → Create a new repository named after the store (e.g. `sunnyside-farmstand`).
+2. Clone the new repo and follow the Setup steps below.
+3. All Cloudflare resources (D1, R2, Pages) must be created fresh for each store — every deployment is fully isolated.
+4. Once live, the store URL goes on the QR code (Admin → QR Code → print at 3×3" or larger).
 
 ---
 
@@ -40,17 +37,27 @@ Each deployment is fully independent. One customer's data, keys, and settings ha
 
 ### Prerequisites
 
+- [Node.js](https://nodejs.org/) 18+
 - [Wrangler CLI](https://developers.cloudflare.com/workers/wrangler/): `npm install -g wrangler`
-- Cloudflare account
-- Stripe account (for Apple Pay)
+- A Cloudflare account (free tier works)
+- A Stripe account
+
+Log into Wrangler before starting:
+```bash
+wrangler login
+```
+
+---
 
 ### 1. Clone & Install
 
 ```bash
-git clone https://github.com/hecate-bot/farmstand.git
-cd farmstand
+git clone https://github.com/hecate-bot/farmstand.git my-store
+cd my-store
 npm install
 ```
+
+---
 
 ### 2. Create D1 Database
 
@@ -59,99 +66,144 @@ wrangler d1 create farmstand
 ```
 
 Copy the `database_id` from the output and paste it into `wrangler.toml`:
+
 ```toml
 [[d1_databases]]
 binding = "DB"
 database_name = "farmstand"
-database_id = "YOUR_DATABASE_ID_HERE"
+database_id = "paste-your-id-here"
 ```
 
-Run the schema:
+Then apply the schema to the **remote** database (the `--remote` flag is required — without it, the schema only applies locally):
+
 ```bash
-wrangler d1 execute farmstand --file=schema.sql
+wrangler d1 execute farmstand --file=schema.sql --remote
 ```
 
-### 3. Create R2 Bucket
+After filling in real values locally, tell git not to track your `wrangler.toml` changes so customer-specific IDs are never committed back to the template:
+
+```bash
+git update-index --assume-unchanged wrangler.toml
+```
+
+---
+
+### 3. Create R2 Bucket for Images
 
 ```bash
 wrangler r2 bucket create farmstand-assets
 ```
 
-Enable public access in the Cloudflare dashboard:
-- R2 → farmstand-assets → Settings → Public Access → Allow Access
-- Note the public URL (looks like `https://pub-xxxx.r2.dev`)
+Set up a public subdomain for the bucket in the Cloudflare dashboard:
+- R2 → farmstand-assets → Settings → **Custom Domains** → Add domain
 
-Update `wrangler.toml`:
-```toml
-[vars]
-R2_PUBLIC_URL = "https://pub-YOUR_ID.r2.dev"
-```
+Use a subdomain dedicated to images — **not** the store's main domain (the main domain is for the app). A good pattern: `img.farmstand.example.com` or `assets.example.com`.
 
-### 4. Set ALLOWED_ORIGIN
+> **Don't** use the store's main URL (e.g. `farmstand.example.com`) for R2 — that's reserved for the app itself. Using it for R2 will cause a DNS conflict.
 
-Open `wrangler.toml` and set `ALLOWED_ORIGIN` to your Cloudflare Pages URL. If you don't know it yet, deploy first (step 5) and then come back to update it — the URL follows the pattern `https://farmstand-<hash>.pages.dev`.
+---
 
-```toml
-[vars]
-ALLOWED_ORIGIN = "https://your-project.pages.dev"
-```
-
-You can also set a custom domain here once you've configured one (e.g. `https://farmstand.yourdomain.com`).
-
-### 5. Admin Password — First-Run Setup
-
-No bootstrap step needed. The app has a **first-run setup mode**: when `admin_password_hash` is empty in the database (fresh install), the first visit to `/admin/login` accepts any password you type (minimum 8 characters) and sets it permanently. After that, the password is locked in and the normal login flow applies.
-
-### 6. Deploy
+### 4. Deploy
 
 ```bash
 npm run deploy
 ```
 
-> If this is your first deploy, `wrangler` will prompt you to create a Pages project — follow the prompts and choose to connect it to your GitHub repo for automatic deploys on push.
+On first run, Wrangler will ask a few questions:
+- **Project name**: use `farmstand` (or the store's name)
+- **Production branch**: enter `main` ← important, don't use the project name here
 
-### 7. Set Up Stripe + Apple Pay
+After deploying you'll get a URL like `https://farmstand-abc123.pages.dev`.
 
-1. Add your Stripe publishable + secret keys in the admin panel → Settings
-2. In Stripe Dashboard → Settings → Apple Pay → Add New Domain → enter your Pages domain
-3. Download the domain association file
-4. Paste its content into Admin → Settings → Apple Pay Domain Association File
-5. Save — the file is now served at `/.well-known/apple-developer-merchantid-domain-association`
+**Connect GitHub for auto-deploys:**
+Cloudflare Pages → farmstand → Settings → Build & Deployments → Connect to Git → select your repo, branch `main`, build command `npm run build`, output directory `dist`.
 
-### 8. Configure Venmo
-
-In Admin → Settings, enter your Venmo business handle (e.g. `paleotreats`).
-
-### 9. Add Products
-
-Admin → Products → Add Product. Upload images, set prices, toggle active/inactive.
-
-### 10. Generate QR Code
-
-Admin → QR Code. Enter your custom domain if using one (e.g. `https://farmstand.paleotreats.com`). Download and print at 3×3" or larger.
+**Set production branch to `main`:**
+Pages → farmstand → Settings → Builds & Deployments → Production branch → change to `main` → Save.
+(If this is wrong, your custom domain will show "Nothing is here yet" even though the app works on the `.pages.dev` URL.)
 
 ---
 
-## Custom Domain (e.g. farmstand.paleotreats.com)
+### 5. Set Environment Secrets
 
-In Cloudflare Dashboard:
-- Pages → farmstand → Custom Domains → Add Custom Domain
-- Enter `farmstand.paleotreats.com`
-- Cloudflare auto-configures DNS if the domain is on Cloudflare
+Go to **Cloudflare Dashboard → Pages → farmstand → Settings → Environment Variables → Add variable** and set both as type **Secret** (not Text):
 
----
+| Secret | Example value |
+|---|---|
+| `R2_PUBLIC_URL` | `https://img.farmstand.example.com` |
+| `ALLOWED_ORIGIN` | `https://farmstand.example.com` |
 
-## Local Development
+`R2_PUBLIC_URL` is the public subdomain you set up for R2 in step 3.
+`ALLOWED_ORIGIN` is the store's public URL (custom domain or `.pages.dev`). It restricts the API to only accept requests from that domain.
 
+After adding secrets, redeploy so the worker picks them up:
 ```bash
-# Build the frontend first
-npm run build
-
-# Run with Wrangler (binds D1 + R2 locally)
-npm run cf-dev
+npm run deploy
 ```
 
-Note: Local R2 + D1 require local databases. For fastest dev, run `vite` directly (`npm run dev`) for the frontend and test API calls against the deployed worker.
+---
+
+### 6. Add a Custom Domain
+
+Cloudflare Dashboard → Pages → farmstand → Custom Domains → Add Custom Domain → enter the store URL (e.g. `farmstand.example.com`). Cloudflare auto-configures DNS if the domain is on Cloudflare.
+
+Update `ALLOWED_ORIGIN` in the dashboard to match the custom domain, then redeploy.
+
+---
+
+### 7. Set Your Admin Password
+
+Visit `/admin/login` on the live site. Since it's a fresh database with no password set, **the first password you type (8+ characters) becomes the permanent admin password** — no SQL or bootstrap step needed.
+
+After that, the normal login flow applies. You can change the password anytime in Admin → Settings → Admin Password.
+
+---
+
+### 8. Configure the Store
+
+Log into the admin panel and fill in:
+
+1. **Store Identity** — name, logo (PNG/JPG/WebP, 160×160 px recommended, max 5 MB)
+2. **Brand Colors** — primary, secondary, accent (live preview shown)
+3. **Stripe Keys** — publishable key (`pk_live_...`) and secret key (`sk_live_...`)
+4. **Venmo Handle** — your Venmo business handle without the `@` (e.g. `paleotreats`)
+
+---
+
+### 9. Set Up Apple Pay
+
+Apple Pay works automatically on Safari/iPhone once your domain is registered with Stripe:
+
+1. Stripe Dashboard → Settings → **Payment method domains** → **Add a new domain**
+2. Enter the store's domain (e.g. `farmstand.example.com`)
+3. Stripe gives you a domain ID — **no file to download**. The domain association file is served automatically by the app.
+4. Stripe/Apple verification takes up to an hour. Once complete, the Apple Pay button appears automatically for Safari users with a card on file.
+
+> **Note:** Apple Pay only appears in Safari on iPhone/Mac. It will not show in Chrome or other browsers — those customers use Venmo instead.
+
+---
+
+### 10. Add Products
+
+Admin → Products → Add Product. Set name, price, description, and upload a photo. Toggle products active/inactive without deleting them.
+
+---
+
+### 11. Generate & Print the QR Code
+
+Admin → QR Code. If you have a custom domain, enter it here so the QR code points to the right URL. Download and print at **3×3 inches or larger** for easy scanning.
+
+---
+
+## Environment Variables
+
+| Variable | Set in | Description |
+|---|---|---|
+| `R2_PUBLIC_URL` | CF dashboard secret | Public URL of the R2 image bucket |
+| `ALLOWED_ORIGIN` | CF dashboard secret | Store's public URL — restricts CORS |
+| `ENVIRONMENT` | `wrangler.toml` | `production` or `development` |
+
+The D1 `database_id` is a binding (not an env var) and must be set in `wrangler.toml`. It is specific to each deployment and should not be committed back to the template repo.
 
 ---
 
@@ -165,32 +217,15 @@ farmstand/
 │   └── lib/                # API client, Stripe helpers
 ├── functions/              # Cloudflare Pages Functions (API)
 │   ├── api/
-│   │   ├── auth/           # Login, verify token
+│   │   ├── auth/           # Login, logout, token verify
 │   │   ├── products/       # CRUD
 │   │   ├── settings/       # Store config
 │   │   ├── upload/         # R2 image uploads
 │   │   └── checkout/       # Stripe Payment Intent
-│   └── .well-known/        # Apple Pay domain verification
+│   └── .well-known/        # Apple Pay domain verification (auto-proxied from Stripe)
 ├── schema.sql              # D1 database schema
-└── wrangler.toml           # Cloudflare config
+└── wrangler.toml           # Cloudflare config (fill in database_id per deployment)
 ```
-
----
-
-## Environment Variables
-
-`R2_PUBLIC_URL` and `ALLOWED_ORIGIN` are set **per-deployment** in the Cloudflare dashboard — never committed to the repo.
-
-**Cloudflare Dashboard → Pages → your project → Settings → Environment Variables → Add:**
-
-| Variable | Example value | Description |
-|---|---|---|
-| `R2_PUBLIC_URL` | `https://img.farmstand.example.com` | Public URL for your R2 bucket |
-| `ALLOWED_ORIGIN` | `https://farmstand.example.com` | Customer's domain — restricts CORS |
-
-`ENVIRONMENT` is set in `wrangler.toml` and is not sensitive.
-
-The D1 `database_id` must be in `wrangler.toml` (it's a binding, not an env var) — fill it in after running `wrangler d1 create`.
 
 ---
 
