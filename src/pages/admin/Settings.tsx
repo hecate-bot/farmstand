@@ -8,7 +8,6 @@ export default function Settings() {
     stripe_secret_key?: string;
     admin_password?: string;
     confirm_password?: string;
-    apple_pay_domain_file?: string;
   }>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -103,10 +102,11 @@ export default function Settings() {
               <div className="flex-1">
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
                   onChange={handleLogoUpload}
                   className="block w-full text-sm text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-gray-100 file:text-gray-700"
                 />
+                <p className="text-xs text-gray-400 mt-1">PNG, JPG, WebP or GIF · 160×160 px recommended · max 5 MB</p>
                 {uploadingLogo && <p className="text-xs text-gray-400 mt-1">Uploading…</p>}
               </div>
             </div>
@@ -181,19 +181,9 @@ export default function Settings() {
             </div>
           </div>
 
-          <div>
-            <label className="label">Apple Pay Domain Association File</label>
-            <textarea
-              value={form.apple_pay_domain_file || ''}
-              onChange={(e) => setForm((f) => ({ ...f, apple_pay_domain_file: e.target.value }))}
-              className="input resize-none font-mono text-xs"
-              rows={4}
-              placeholder="Paste content from Stripe's Apple Pay domain verification..."
-            />
-            <p className="text-xs text-gray-400 mt-1">
-              Get from Stripe Dashboard → Settings → Apple Pay → Add Domain → Download file. Served at /.well-known/apple-developer-merchantid-domain-association
-            </p>
-          </div>
+          <p className="text-xs text-gray-400 pt-1">
+            Apple Pay domain verification is handled automatically. Register your domain in Stripe Dashboard → Settings → Payment method domains.
+          </p>
         </div>
 
         {/* Admin Password */}

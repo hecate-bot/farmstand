@@ -30,14 +30,9 @@ async function hashPassword(password: string): Promise<string> {
 export async function onRequestGet({ request, env }: PagesContext): Promise<Response> {
   const isAdmin = await verifyToken(request, env);
 
-  // Always fetch the full row; strip sensitive fields based on role
   const store = await env.DB.prepare(
-    'SELECT id, name, logo_url, color_primary, color_secondary, color_accent, stripe_publishable_key, venmo_handle, apple_pay_domain_file FROM stores WHERE id = ?'
+    'SELECT id, name, logo_url, color_primary, color_secondary, color_accent, stripe_publishable_key, venmo_handle FROM stores WHERE id = ?'
   ).bind('default').first<Record<string, unknown>>();
-
-  if (!isAdmin && store) {
-    delete store['apple_pay_domain_file'];
-  }
 
   return new Response(JSON.stringify(store), {
     headers: { 'Content-Type': 'application/json' },
@@ -77,7 +72,6 @@ export async function onRequestPut({ request, env }: PagesContext): Promise<Resp
   if (body.color_accent !== undefined) { fields.push('color_accent = ?'); values.push(body.color_accent); }
   if (body.stripe_publishable_key !== undefined) { fields.push('stripe_publishable_key = ?'); values.push(body.stripe_publishable_key); }
   if (body.venmo_handle !== undefined) { fields.push('venmo_handle = ?'); values.push(body.venmo_handle); }
-  if (body.apple_pay_domain_file !== undefined) { fields.push('apple_pay_domain_file = ?'); values.push(body.apple_pay_domain_file); }
 
   // Only update secret key if provided and non-empty
   if (body.stripe_secret_key) {
