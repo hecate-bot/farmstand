@@ -5,7 +5,7 @@ pages_build_output_dir = "./dist"
 [[d1_databases]]
 binding = "DB"
 database_name = "farmstand"
-database_id = "05be80b4-3654-4ac6-a81b-aee87b0158a4"  # wrangler d1 create farmstand
+database_id = "REPLACE_WITH_YOUR_D1_DATABASE_ID"  # wrangler d1 create farmstand
 
 [[r2_buckets]]
 binding = "BUCKET"
@@ -13,8 +13,8 @@ bucket_name = "farmstand-assets"
 
 [vars]
 ENVIRONMENT = "production"
-R2_PUBLIC_URL = "https://img.farmstand.paleotreats.com"
-ALLOWED_ORIGIN = "https://farmstand.paleotreats.com"
+R2_PUBLIC_URL = "https://REPLACE_WITH_YOUR_R2_DOMAIN"
+ALLOWED_ORIGIN = "https://REPLACE_WITH_YOUR_PAGES_DOMAIN"
 
 [dev]
 port = 8788
