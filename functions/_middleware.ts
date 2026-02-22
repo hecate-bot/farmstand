@@ -16,12 +16,25 @@ export async function onRequest(context: PagesContext): Promise<Response> {
   const allowedOrigin = env.ALLOWED_ORIGIN || request.headers.get('Origin') || '*';
   const requestOrigin = request.headers.get('Origin') ?? '';
 
-  // Reject cross-origin requests that don't match when ALLOWED_ORIGIN is set
+  // Reject cross-origin requests that don't match when ALLOWED_ORIGIN is set.
+  // Same-origin requests (origin host == request host) are always allowed so
+  // the app works on both the custom domain and the *.pages.dev preview URL.
   if (env.ALLOWED_ORIGIN && requestOrigin && requestOrigin !== env.ALLOWED_ORIGIN) {
-    return new Response(JSON.stringify({ error: 'Forbidden' }), {
-      status: 403,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    try {
+      const requestHost = new URL(request.url).host;
+      const originHost = new URL(requestOrigin).host;
+      if (originHost !== requestHost) {
+        return new Response(JSON.stringify({ error: 'Forbidden' }), {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+    } catch {
+      return new Response(JSON.stringify({ error: 'Forbidden' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
   }
 
   // Handle CORS preflight

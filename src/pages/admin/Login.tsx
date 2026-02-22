@@ -17,8 +17,8 @@ export default function Login() {
       const { token } = await login(password);
       localStorage.setItem('admin_token', token);
       navigate('/admin/products');
-    } catch {
-      setError('Invalid password');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
       setLoading(false);
     }
