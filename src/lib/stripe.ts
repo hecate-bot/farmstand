@@ -32,7 +32,7 @@ export const createPaymentRequest = async (
   });
 
   const result = await paymentRequest.canMakePayment();
-  const canMakeApplePayment = !!(result?.applePay);
+  const canMakeApplePayment = !!(result?.applePay || result?.googlePay);
 
   return { paymentRequest, canMakeApplePayment };
 };
