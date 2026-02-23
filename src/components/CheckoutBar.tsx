@@ -108,7 +108,7 @@ export default function CheckoutBar({ cart, settings }: Props) {
     return () => {
       btn.unmount();
     };
-  }, [stripe, paymentRequest, canApplePay]);
+  }, [stripe, paymentRequest, canApplePay, hasItems]);
 
   const handleVenmo = () => {
     if (!hasItems) return;
